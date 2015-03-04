@@ -12,7 +12,7 @@ module Shoryuken
           raise ArgumentError, 'expected Numeric, Time but got '+time.class.name unless Time===time
           
           # Times that are less than 15 minutes in the future can be queued immediately.
-          if time < Time.now + 15 * 60
+          if time < Time.now + Shoryuken::Later::MAX_QUEUE_DELAY
             perform_in(time, body, options)
             
           # Otherwise, the message is inserted into a DynamoDB table with the same name as the queue.

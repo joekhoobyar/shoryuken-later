@@ -8,6 +8,12 @@ module Shoryuken
 
     private
     
+      def next_item(table)
+        Shoryuken::Later::Client.tables(table).items.
+          where(:perform_at).less_than((Time.now + Shoryuken::Later::MAX_QUEUE_DELAY).to_i).
+          first
+      end
+    
       def process_item(item)
         time, worker_class, args, id = item.attributes.values_at('perform_at','shoryuken_class','shoryuken_args','id')
         
