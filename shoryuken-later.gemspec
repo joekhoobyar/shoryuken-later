@@ -9,6 +9,10 @@ Gem::Specification.new do |spec|
   spec.authors     = ["Joe Khoobyar"]
   spec.email       = ["joe@khoobyar.name"]
   spec.homepage    = "http://github.com/joekhoobyar/shoryuken-later"
+  spec.summary     = 'A scheduling plugin (using Dynamo DB) for Shoryuken'
+  spec.description = %Q{
+    This gem provides a scheduling plugin (using Dynamo DB) for Shoryuken, as well as an ActiveJob adapter
+  }
   
   spec.license = "LGPL-3.0"
   spec.files = `git ls-files -z`.split("\x0")
