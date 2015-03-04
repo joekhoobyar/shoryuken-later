@@ -9,7 +9,6 @@ module Shoryuken
         def tables(table)
           @@tables[table.to_s] ||= ddb.tables[table].tap do |tbl|
             tbl.hash_key = [:id, :string]
-            tbl.range_key = [:perform_at, :number]
           end
         end
         
