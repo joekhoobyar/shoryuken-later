@@ -1,4 +1,5 @@
 require 'time'
+require 'json'
 
 module Shoryuken
   module Later
