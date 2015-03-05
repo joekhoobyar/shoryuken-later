@@ -1,3 +1,4 @@
+require 'set'
 require 'shoryuken/later/poller'
 
 module Shoryuken
@@ -6,17 +7,17 @@ module Shoryuken
       include Celluloid
       include Shoryuken::Util
       
+      trap_exit :poller_died
+      
       def initialize
         @tables = Shoryuken::Later.tables.dup.uniq
         
         @done = false
         
-        @ready = @tables.map{|table| :"poller-#{table}" }
-        @busy = []
+        @ready = Set.new([])
+        @busy = Set.new([])
         
-        @tables.each do |name|
-          Poller.supervise_as(:"poller-#{table}", current_actor, table)
-        end
+        @tables.each{|table| spawn_poller(table) }
       end
 
       def start
@@ -48,27 +49,29 @@ module Shoryuken
 
       def poller_done(table, poller)
         watchdog('Later::Manager#poller_done died') do
-          logger.info "Poller done for '#{table}'"
+          logger.debug { "Poller done for '#{table}'" }
 
           @busy.delete poller.name
 
           if stopped?
             poller.terminate if poller.alive?
+            
+          # Poller will be ready again after the configured delay.
           else
-            @ready << poller.name
+            after(Shoryuken::Later.options[:later][:delay]) { @ready << poller.name }
           end
         end
       end
 
       def poller_died(poller, reason)
-        watchdog("Later::Manager#poller_died died") do
-          logger.info "Process died, reason: #{reason}"
+        watchdog('Later::Manager#poller_died died') do
+          table = poller.name.gsub(/^poller-/,'')
+          
+          logger.debug { "Poller for '#{table}' died, reason: #{reason}" }
 
-          @busy.delete poller
+          @busy.delete poller.name
 
-          unless stopped?
-            @ready << Poller.new_link(current_actor, poller.table_name)
-          end
+          spawn_poller table unless stopped?
         end
       end
 
@@ -82,18 +85,31 @@ module Shoryuken
         logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Polled Tables: #{@tables.keys.join(', ')}" }
 
         if @ready.empty?
-          logger.debug { 'Pausing fetcher, because all processors are busy' }
+          logger.debug { 'Pausing because all pollers are busy' }
 
           after(1) { dispatch }
 
           return
         end
+        
+        @ready.map{|ready| Actor[ready] }.compact.each do |poller|
+          @ready.delete(poller.name)
+          @busy << poller.name
+          
+          poller.async.poll
+        end
       end
 
       private
       
+      def spawn_poller(table)
+        poller = Poller.new_link(current_actor, table)
+        Actor[:"poller-#{table}"] = poller
+        @ready << poller.name
+      end
+      
       def soft_shutdown(delay)
-        logger.info { "Waiting for #{@busy.size} busy workers" }
+        logger.info { "Waiting for #{@busy.size} busy pollers" }
 
         if @busy.size > 0
           after(delay) { soft_shutdown(delay) }
@@ -103,17 +119,19 @@ module Shoryuken
       end
 
       def hard_shutdown_in(delay)
-        logger.info { "Waiting for #{@busy.size} busy workers" }
-        logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
+        logger.info { "Waiting for #{@busy.size} busy pollers" }
+        logger.info { "Pausing up to #{delay} seconds to allow pollers to finish..." }
 
         after(delay) do
           watchdog("Later::Manager#hard_shutdown_in died") do
             if @busy.size > 0
-              logger.info { "Hard shutting down #{@busy.size} busy workers" }
+              logger.info { "Hard shutting down #{@busy.size} busy pollers" }
 
-              @busy.each do |poller|
-                t = poller.bare_object.actual_work_thread
-                t.raise Shutdown if poller.alive?
+              @busy.each do |busy|
+                if poller = Actor[busy]
+                  t = poller.bare_object.actual_work_thread
+                  t.raise Shutdown if poller.alive?
+                end
               end
             end
 

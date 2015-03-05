@@ -134,7 +134,7 @@ module Shoryuken
           end
 
           o.on '-t', '--table TABLE...', 'Table to process' do |arg|
-            Shoryuken.tables << args
+            Shoryuken::Later.tables << args
           end
 
           o.on '-r', '--require [PATH|DIR]', 'Location of the worker' do |arg|
