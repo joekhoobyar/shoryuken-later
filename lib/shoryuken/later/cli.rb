@@ -6,7 +6,7 @@ $stdout.sync = true
 require 'singleton'
 require 'optparse'
 require 'erb'
-require 'shoryuken'
+require 'shoryuken/later'
 
 module Shoryuken
   module Later
@@ -32,7 +32,6 @@ module Shoryuken
         initialize_logger
         require_workers
         validate!
-        patch_deprecated_workers!
         daemonize
         write_pid
         load_celluloid
@@ -219,6 +218,16 @@ module Shoryuken
         Shoryuken::Later.options.merge!(config)
 
         Shoryuken::Later.options.merge!(options)
+        
+        # Tables from command line options take precedence...
+        unless Shoryuken::Later.tables.any?
+          tables = Shoryuken::Later.options[:later][:tables]
+            
+          # Use the default table if none were specified in the config file.
+          tables << 'shoryuken_later' if tables.empty?
+          
+          Shoryuken::Later.tables.replace(tables)
+        end
       end
 
       def parse_config(config_file)
@@ -250,7 +259,7 @@ module Shoryuken
           # validate all tables and AWS credentials consequently
           begin
             unless Shoryuken::Later::Client.tables(table).exists?
-              raise ArgumentError, "Table '#{queue}' does not exist"
+              raise ArgumentError, "Table '#{table}' does not exist"
             end
           rescue => e
             raise

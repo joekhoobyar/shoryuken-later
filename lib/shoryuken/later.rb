@@ -12,7 +12,7 @@ module Shoryuken
     DEFAULTS = {
       aws: {},
       later: {
-        tables: ['shoryuken_later'],
+        tables: [],
         delay: DEFAULT_POLL_DELAY,
       },
       timeout: 8
@@ -26,7 +26,7 @@ module Shoryuken
       end
       
       def poll_delay
-        options[:later].fetch(:delay, DEFAULT_POLL_DELAY)
+        options[:later][:delay] || DEFAULT_POLL_DELAY
       end
       
       def tables

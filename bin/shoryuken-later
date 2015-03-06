@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/shoryuken/later/cli'
+
+begin
+  Shoryuken::Later::CLI.instance.run(ARGV)
+rescue => e
+  raise e if $DEBUG
+  STDERR.puts e.message
+  STDERR.puts e.backtrace.join("\n")
+  exit 1
+end
