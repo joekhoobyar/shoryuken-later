@@ -14,8 +14,9 @@ module Shoryuken
         
         @done = false
         
-        @ready = Set.new([])
+        @idle = Set.new([])
         @busy = Set.new([])
+        @timers = Hash.new
         
         @tables.each{|table| spawn_poller(table) }
       end
@@ -23,19 +24,34 @@ module Shoryuken
       def start
         logger.info 'Starting'
 
-        dispatch
+        # Start a timer for every table being polled.
+        @tables.each do |table|
+          
+          # Save the timer so it can be cancelled at shutdown.
+          @timers[table] = every(Shoryuken::Later.poll_delay) do
+            name = :"poller-#{table}"
+            
+            # Only start polling if the poller is idle.
+            if @idle.include? name
+              @idle.delete(name)
+              @busy << name
+              
+              Actor[name].async.poll
+            end
+          end
+        end
       end
 
       def stop(options = {})
         watchdog('Later::Manager#stop died') do
           @done = true
 
-          logger.info { "Shutting down #{@ready.size} quiet poller(s)" }
+          logger.info { "Shutting down #{@idle.size} idle poller(s)" }
 
-          @ready.each do |name|
+          @idle.each do |name|
             poller = Actor[name] and poller.alive? and poller.terminate
           end
-          @ready.clear
+          @idle.clear
 
           return after(0) { signal(:shutdown) } if @busy.empty?
 
@@ -55,10 +71,8 @@ module Shoryuken
 
           if stopped?
             poller.terminate if poller.alive?
-            
-          # Poller will be ready again after the configured delay.
           else
-            after(Shoryuken::Later.options[:later][:delay]) { @ready << poller.name }
+            @idle << poller.name
           end
         end
       end
@@ -79,33 +93,12 @@ module Shoryuken
         @done
       end
 
-      def dispatch
-        return if stopped?
-
-        logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Polled Tables: #{@tables.keys.join(', ')}" }
-
-        if @ready.empty?
-          logger.debug { 'Pausing because all pollers are busy' }
-
-          after(1) { dispatch }
-
-          return
-        end
-        
-        @ready.map{|ready| Actor[ready] }.compact.each do |poller|
-          @ready.delete(poller.name)
-          @busy << poller.name
-          
-          poller.async.poll
-        end
-      end
-
       private
       
       def spawn_poller(table)
         poller = Poller.new_link(current_actor, table)
         Actor[:"poller-#{table}"] = poller
-        @ready << poller.name
+        @idle << poller.name
       end
       
       def soft_shutdown(delay)

@@ -7,11 +7,13 @@ module Shoryuken
   module Later
     MAX_QUEUE_DELAY = 15 * 60
     
+    DEFAULT_POLL_DELAY = 5 * 60
+    
     DEFAULTS = {
       aws: {},
       later: {
         tables: ['shoryuken_later'],
-        delay: 5 * 60,
+        delay: DEFAULT_POLL_DELAY,
       },
       timeout: 8
     }
@@ -21,6 +23,10 @@ module Shoryuken
     class << self
       def options
         @options ||= DEFAULTS.dup
+      end
+      
+      def poll_delay
+        options[:later].fetch(:delay, DEFAULT_POLL_DELAY)
       end
       
       def tables

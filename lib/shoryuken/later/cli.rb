@@ -196,11 +196,11 @@ module Shoryuken
             end
           end
           
-          ready  = launcher.manager.instance_variable_get(:@ready).size
+          idle   = launcher.manager.instance_variable_get(:@idle).size
           busy   = launcher.manager.instance_variable_get(:@busy).size
           tables = launcher.manager.instance_variable_get(:@tables)
 
-          logger.info "Ready: #{ready}, Busy: #{busy}, Polled Tables: #{tables.join(', ')}"
+          logger.info "Idle: #{idle}, Busy: #{busy}, Polled Tables: #{tables.join(', ')}"
         else
           logger.info "Received #{sig}, will shutdown down"
 
