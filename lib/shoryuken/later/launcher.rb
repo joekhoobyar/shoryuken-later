@@ -1,3 +1,6 @@
+# All of this has been "borrowed" from Shoryuken.
+
+# @see Shoryuken::Launcher
 module Shoryuken
   module Later
     class Launcher

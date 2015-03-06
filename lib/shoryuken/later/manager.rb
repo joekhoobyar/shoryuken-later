@@ -1,3 +1,6 @@
+# Most of this has been "borrowed" from Shoryuken, but then repurposed for periodic polling.
+
+# @see Shoryuken::Manager
 require 'set'
 require 'shoryuken/later/poller'
 
