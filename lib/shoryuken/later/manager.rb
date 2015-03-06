@@ -7,8 +7,6 @@ module Shoryuken
       include Celluloid
       include Shoryuken::Util
       
-      trap_exit :poller_died
-      
       def initialize
         @tables = Shoryuken::Later.tables.dup.uniq
         
@@ -16,29 +14,20 @@ module Shoryuken
         
         @idle = Set.new([])
         @busy = Set.new([])
-        @timers = Hash.new
+        @timers = {}
         
-        @tables.each{|table| spawn_poller(table) }
+        @tables.each{|table| Poller.supervise_as :"poller-#{table}", current_actor, table }
       end
 
       def start
         logger.info 'Starting'
 
-        # Start a timer for every table being polled.
+        # Start a poller for every table being polled.
         @tables.each do |table|
+          dispatch table
           
           # Save the timer so it can be cancelled at shutdown.
-          @timers[table] = every(Shoryuken::Later.poll_delay) do
-            name = :"poller-#{table}"
-            
-            # Only start polling if the poller is idle.
-            if @idle.include? name
-              @idle.delete(name)
-              @busy << name
-              
-              Actor[name].async.poll
-            end
-          end
+          @timers[table] = every(Shoryuken::Later.poll_delay) { dispatch table }
         end
       end
 
@@ -47,6 +36,7 @@ module Shoryuken
           @done = true
           
           @timers.each_value{|timer| timer.cancel if timer }
+          @timers.clear
 
           logger.info { "Shutting down #{@idle.size} idle poller(s)" }
 
@@ -55,7 +45,9 @@ module Shoryuken
           end
           @idle.clear
 
-          return after(0) { signal(:shutdown) } if @busy.empty?
+          if @busy.empty?
+            return after(0) { signal(:shutdown) }
+          end
 
           if options[:shutdown]
             hard_shutdown_in(options[:timeout])
@@ -69,25 +61,22 @@ module Shoryuken
         watchdog('Later::Manager#poller_done died') do
           logger.debug { "Poller done for '#{table}'" }
 
-          @busy.delete poller.name
+          name = :"poller-#{table}"
+          @busy.delete name
 
           if stopped?
             poller.terminate if poller.alive?
           else
-            @idle << poller.name
+            @idle << name
           end
         end
       end
 
-      def poller_died(poller, reason)
-        watchdog('Later::Manager#poller_died died') do
-          table = poller.name.gsub(/^poller-/,'')
-          
-          logger.debug { "Poller for '#{table}' died, reason: #{reason}" }
+      def poller_ready(table, poller)
+        watchdog('Later::Manager#poller_ready died') do
+          logger.debug { "Poller for '#{table}' ready" }
 
-          @busy.delete poller.name
-
-          spawn_poller table unless stopped?
+          @idle << :"poller-#{table}"
         end
       end
 
@@ -97,10 +86,16 @@ module Shoryuken
 
       private
       
-      def spawn_poller(table)
-        poller = Poller.new_link(current_actor, table)
-        Actor[:"poller-#{table}"] = poller
-        @idle << poller.name
+      def dispatch(table)
+        name = :"poller-#{table}"
+        
+        # Only start polling if the poller is idle.
+        if ! stopped? && @idle.include?(name)
+          @idle.delete(name)
+          @busy << name
+              
+          Actor[name].async.poll
+        end
       end
       
       def soft_shutdown(delay)
@@ -129,7 +124,6 @@ module Shoryuken
                 end
               end
             end
-
             after(0) { signal(:shutdown) }
           end
         end

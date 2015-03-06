@@ -11,6 +11,8 @@ module Shoryuken
       def initialize(manager, table_name)
         @manager = manager
         @table_name = table_name
+        
+        @manager.async.poller_ready(@table_name, self)
       end
       
       def poll
