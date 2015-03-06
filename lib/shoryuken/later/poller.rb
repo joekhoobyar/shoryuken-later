@@ -62,6 +62,7 @@ module Shoryuken
         worker_class = worker_class.constantize
         args = JSON.parse(args)
         time = Time.at(time)
+        queue_name = item.attributes['shoryuken_queue']
         
         # Conditionally delete an item prior to enqueuing it, ensuring only one actor may enqueue it.
         begin item.delete(:if => {id: id})
@@ -71,7 +72,18 @@ module Shoryuken
         end
 
         # Now the item is safe to be enqueued, since the conditional delete succeeded.
-        worker_class.perform_in(time, args['body'], args['options'])
+        body, options = args.values_at('body','options')
+        if queue_name.nil?
+          worker_class.perform_in(time, body, options)
+          
+        # For compatibility with Shoryuken's ActiveJob adapter, support an explicit queue name.
+        else
+          delay = (time - Time.now).to_i
+          options[:delay_seconds] = delay if delay > 0
+          options[:message_attributes] ||= {}
+          options[:message_attributes]['shoryuken_class'] = { string_value: worker_class.to_s, data_type: 'String' }
+          Shoryuken::Client.send_message(queue_name, body, options)
+        end
       end
 
     end

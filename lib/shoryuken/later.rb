@@ -48,3 +48,5 @@ module Shoryuken
     end
   end
 end
+
+require 'shoryuken/later/active_job_adapter' if defined?(::ActiveJob)
