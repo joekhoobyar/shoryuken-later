@@ -7,6 +7,7 @@
 /.buildpath
 /.project
 /.settings
+shoryuken.yml
 
 ## Environment normalisation:
 /.bundle
