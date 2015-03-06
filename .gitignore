@@ -1,5 +1,6 @@
 *.rbc
 .rspec
+/pkg
 /log
 /tmp
 /spec/tmp
