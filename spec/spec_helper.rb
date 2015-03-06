@@ -68,7 +68,7 @@ RSpec.configure do |config|
     TestWorker.get_shoryuken_options['queue'] = 'shoryuken_later'
     TestWorker.get_shoryuken_options['schedule_table'] = 'shoryuken_later'
 
-    Shoryuken.workers.clear
+    Shoryuken.worker_registry.clear
     Shoryuken.register_worker('shoryuken_later', TestWorker)
   end
 end

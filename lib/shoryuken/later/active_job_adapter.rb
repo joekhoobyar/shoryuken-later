@@ -1,4 +1,4 @@
-# Practically all of this has been "borrowed" from Shoryuken.
+# Build on top of Shoryuken's ActiveJob adapter.
 
 # @see ActiveJob::QueueAdapter::ShoryukenAdapter
 
@@ -20,14 +20,10 @@ module ActiveJob
     # To use Shoryuken::Later set the queue_adapter config to +:shoryuken_later+.
     #
     #   Rails.application.config.active_job.queue_adapter = :shoryuken_later
-    class ShoryukenLaterAdapter
+    class ShoryukenLaterAdapter < ShoryukenAdapter
+      JobWrapper = ShoryukenAdapter::JobWrapper
+      
       class << self
-        def enqueue(job) #:nodoc:
-          register_worker!(job)
-
-          Shoryuken::Client.send_message(job.queue_name, job.serialize, message_attributes: message_attributes)
-        end
-
         def enqueue_at(job, timestamp) #:nodoc:
           register_worker!(job)
 
@@ -40,32 +36,6 @@ module ActiveJob
             Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay,
                                                                           message_attributes: message_attributes)
           end
-        end
-
-
-        private
-
-        def register_worker!(job)
-          Shoryuken.register_worker(job.queue_name, JobWrapper)
-        end
-
-        def message_attributes
-          @message_attributes ||= {
-            'shoryuken_class' => {
-              string_value: JobWrapper.to_s,
-              data_type: 'String'
-            }
-          }
-        end
-      end
-
-      class JobWrapper #:nodoc:
-        include Shoryuken::Worker
-
-        shoryuken_options body_parser: :json, auto_delete: true
-
-        def perform(sqs_msg, hash)
-          Base.execute hash
         end
       end
     end
