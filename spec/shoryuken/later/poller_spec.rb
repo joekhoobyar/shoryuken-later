@@ -55,7 +55,7 @@ describe Shoryuken::Later::Poller do
   end
   
   describe '#process_item' do
-    it 'enqueues a message if the item could be delete' do
+    it 'enqueues a message if the item could be deleted' do
       expect(TestWorker).to receive(:perform_in).once do |time,body,options|
         expect(time   ).to be > Time.now
         expect(body   ).to eq(body)
