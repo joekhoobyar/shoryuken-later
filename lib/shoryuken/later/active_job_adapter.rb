@@ -21,6 +21,8 @@ module ActiveJob
     #
     #   Rails.application.config.active_job.queue_adapter = :shoryuken_later
     class ShoryukenLaterAdapter < ShoryukenAdapter
+      JobWrapper = ShoryukenAdapter::JobWrapper
+      
       class << self
         def enqueue_at(job, timestamp) #:nodoc:
           register_worker!(job)
