@@ -45,6 +45,8 @@ module Shoryuken
       def stop(options = {})
         watchdog('Later::Manager#stop died') do
           @done = true
+          
+          @timers.each_value{|timer| timer.cancel if timer }
 
           logger.info { "Shutting down #{@idle.size} idle poller(s)" }
 
