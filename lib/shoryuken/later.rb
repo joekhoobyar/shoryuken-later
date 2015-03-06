@@ -19,6 +19,7 @@ module Shoryuken
     }
     
     @@tables = []
+    @@default_table = 'shoryuken_later'
     
     class << self
       def options
@@ -27,6 +28,14 @@ module Shoryuken
       
       def poll_delay
         options[:later][:delay] || DEFAULT_POLL_DELAY
+      end
+      
+      def default_table
+        @@default_table
+      end
+      
+      def default_table=(table)
+        @@default_table = table
       end
       
       def tables

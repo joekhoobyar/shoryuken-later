@@ -222,9 +222,9 @@ module Shoryuken
         # Tables from command line options take precedence...
         unless Shoryuken::Later.tables.any?
           tables = Shoryuken::Later.options[:later][:tables]
-            
+
           # Use the default table if none were specified in the config file.
-          tables << 'shoryuken_later' if tables.empty?
+          tables << Shoryuken::Later.default_table if tables.empty?
           
           Shoryuken::Later.tables.replace(tables)
         end
