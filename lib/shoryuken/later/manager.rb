@@ -76,7 +76,9 @@ module Shoryuken
         watchdog('Later::Manager#poller_ready died') do
           logger.debug { "Poller for '#{table}' ready" }
 
-          @idle << :"poller-#{table}"
+          name = :"poller-#{table}"
+          @busy.delete name
+          @idle << name
         end
       end
 
