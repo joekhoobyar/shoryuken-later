@@ -79,6 +79,7 @@ module Shoryuken
           ::Rails::Application.initializer "shoryuken-later.eager_load" do
             ::Rails.application.config.eager_load = true
           end
+          require 'shoryuken/later/active_job_adapter' if defined?(::ActiveJob)
           require File.expand_path("config/environment.rb")
         end
 
@@ -215,10 +216,10 @@ module Shoryuken
 
         config = options[:config_file] ? parse_config(options[:config_file]).deep_symbolize_keys : {}
 
-        Shoryuken::Later.options[:later].merge!(config.delete(:later))
+        Shoryuken::Later.options[:later].merge!(config.delete(:later) || {})
         Shoryuken::Later.options.merge!(config)
 
-        Shoryuken::Later.options[:later].merge!(options.delete(:later))
+        Shoryuken::Later.options[:later].merge!(options.delete(:later) || {})
         Shoryuken::Later.options.merge!(options)
         
         # Tables from command line options take precedence...
