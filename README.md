@@ -47,12 +47,12 @@ aws:
 # This key is only used by Shoryuken::Later
 later:
   delay: 5 * 60   # How frequently to poll the schedule table, in seconds.
+  pidfile: some/path/to/file.pid
   tables:
     - table1
     
 # These keys are used by both Shoryuken and Shoryuken::Later
 logfile: some/path/to/file.log
-pidfile: some/path/to/file.pid
 
 # These keys are only used by Shoryuken
 concurrency: 3
