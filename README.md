@@ -5,6 +5,12 @@ to delay messages arbitrarily far into the future.
 
 ## Features
 
+### Supports distributed architectures
+
+An SQS message is *only* queued if a _conditional_ delete of the DDB item is successful. This eliminates any potential race condition, so if more than one `shoryuken-later` process is polling the same schedule table then no redundant SQS messages will be queued.
+
+NOTE: You shouldn't really _need_ to run more than one process, but if you do it will be safe.
+
 ### One or more schedule tables
 
 Supports polling one or more DynamoDB tables for messages.
