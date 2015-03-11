@@ -18,7 +18,7 @@ module Shoryuken
       def run(args)
         self_read, self_write = IO.pipe
 
-        %w[INT TERM USR1 USR2 TTIN].each do |sig|
+        %w[INT TERM USR1 USR2].each do |sig|
           trap sig do
             self_write.puts(sig)
           end
@@ -47,7 +47,7 @@ module Shoryuken
           @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
           
           # Loop watching for signals and firing off of timers
-          loop do
+          while @timers
             interval = @timers.wait_interval
             readable, writable = IO.select([self_read], nil, nil, interval)
             if readable
@@ -191,8 +191,7 @@ module Shoryuken
         when 'USR1'
           logger.info "Received USR1, will soft shutdown down"
           @timers.cancel
-          sleep 1 while @busy
-          exit 0
+          @timers = nil
         else
           logger.info "Received #{sig}, will shutdown down"
           raise Interrupt
