@@ -74,6 +74,7 @@ module Shoryuken
         # For compatibility with Shoryuken's ActiveJob adapter, support an explicit queue name.
         else
           delay = (time - Time.now).to_i
+          body = JSON.dump(body) if body.is_a? Hash
           options[:delay_seconds] = delay if delay > 0
           options[:message_body] = body
           options[:message_attributes] ||= {}
