@@ -1,9 +1,7 @@
 require 'spec_helper'
 require 'shoryuken/later/poller'
-require 'shoryuken/later/manager'
 
 describe Shoryuken::Later::Poller do
-  let(:manager)   { double Shoryuken::Later::Manager, poller_ready: nil, poller_done: nil }
   let(:ddb_table) { double 'DynamoDb Table' }
   let(:ddb_items) { double 'Table Items' }
   let(:table)     { 'shoryuken_later' }
@@ -17,38 +15,26 @@ describe Shoryuken::Later::Poller do
   end
 
   before do
-    allow(manager).to receive(:async).and_return(manager)
     allow(Shoryuken::Later::Client).to receive(:tables).with(table).and_return(ddb_table)
   end
 
   subject do
-    described_class.new(manager, table)
+    described_class.new(table)
   end
   
-  describe '#initialize' do
-    it 'informs the manager that the poller is ready' do
-      expect(manager).to receive(:poller_ready).once
-      
-      subject.inspect
-      subject.inspect
-    end
-  end
-
   describe '#poll' do
     it 'pulls items from #next_item, and processes with #process_item' do
       items = [ddb_item]
       expect_any_instance_of(described_class).to receive(:next_item).twice { items.pop }
       expect_any_instance_of(described_class).to receive(:process_item).once.with(ddb_item)
-      expect(manager).to receive(:poller_done).once
 
       subject.poll
     end
     
-    it 'informs the manager after polling is done' do
+    it 'does not call #process_item when there are no items' do
       items = []
       expect_any_instance_of(described_class).to receive(:next_item).once { items.pop }
       expect_any_instance_of(described_class).not_to receive(:process_item)
-      expect(manager).to receive(:poller_done).once
 
       subject.poll
     end
