@@ -22,7 +22,7 @@ module Shoryuken
               id = item['id']
               logger.info "Found message #{id} from '#{table_name}'"
               if sent_msg = process_item(item)
-                logger.debug { "Enqueued message #{id} from '#{table_name}' as #{sent_msg.id}" }
+                logger.debug { "Enqueued message #{id} from '#{table_name}'" }
               else
                 logger.debug { "Skipping already queued message #{id} from '#{table_name}'" }
               end
