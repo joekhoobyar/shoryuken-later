@@ -10,8 +10,9 @@ module Shoryuken
       include Celluloid
       include Shoryuken::Util
       
-      def initialize
+      def initialize(condvar)
         @tables = Shoryuken::Later.tables.dup.uniq
+        @finished = condvar
         
         @done = false
         
@@ -49,7 +50,7 @@ module Shoryuken
           @idle.clear
 
           if @busy.empty?
-            return after(0) { signal(:shutdown) }
+            return after(0) { @finished.signal }
           end
 
           if options[:shutdown]
@@ -109,7 +110,7 @@ module Shoryuken
         if @busy.size > 0
           after(delay) { soft_shutdown(delay) }
         else
-          after(0) { signal(:shutdown) }
+          @finished.signal
         end
       end
 
@@ -129,7 +130,7 @@ module Shoryuken
                 end
               end
             end
-            after(0) { signal(:shutdown) }
+            @finished.signal
           end
         end
       end

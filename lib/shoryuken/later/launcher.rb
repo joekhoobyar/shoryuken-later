@@ -12,7 +12,8 @@ module Shoryuken
       attr_accessor :manager
       
       def initialize
-        @manager = Shoryuken::Later::Manager.new_link
+        @condvar = Celluloid::Condition.new
+        @manager = Shoryuken::Later::Manager.new_link(@condvar)
 
         @done = false
       end
@@ -22,7 +23,8 @@ module Shoryuken
           @done = true
 
           manager.async.stop(shutdown: !!options[:shutdown], timeout: Shoryuken::Later.options[:timeout])
-          manager.wait(:shutdown)
+          @condvar.wait
+          manager.terminate
         end
       end
 
