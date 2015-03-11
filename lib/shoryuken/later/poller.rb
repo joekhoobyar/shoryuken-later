@@ -15,20 +15,20 @@ module Shoryuken
         watchdog('Later::Poller#poll died') do
           started_at = Time.now
           
-          logger.debug { "Polling for scheduled messages in '#{@table_name}'" }
+          logger.debug { "Polling for scheduled messages in '#{table_name}'" }
           
           begin
             while item = next_item
-              id = item.attributes['id']
-              logger.info "Found message #{id} from '#{@table_name}'"
+              id = item['id']
+              logger.info "Found message #{id} from '#{table_name}'"
               if sent_msg = process_item(item)
-                logger.debug { "Enqueued message #{id} from '#{@table_name}' as #{sent_msg.id}" }
+                logger.debug { "Enqueued message #{id} from '#{table_name}'" }
               else
-                logger.debug { "Skipping already queued message #{id} from '#{@table_name}'" }
+                logger.debug { "Skipping already queued message #{id} from '#{table_name}'" }
               end
             end
   
-            logger.debug { "Poller for '#{@table_name}' completed in #{elapsed(started_at)} ms" }
+            logger.debug { "Poller for '#{table_name}' completed in #{elapsed(started_at)} ms" }
           rescue => ex
             logger.error "Error fetching message: #{ex}"
             logger.error ex.backtrace.first
@@ -38,26 +38,29 @@ module Shoryuken
 
     private
     
-      def table
-        Shoryuken::Later::Client.tables(@table_name)
+      def client
+        Shoryuken::Later::Client
       end
-
+    
       # Fetches the next available item from the schedule table.    
       def next_item
-        table.items.where(:perform_at).less_than((Time.now + Shoryuken::Later::MAX_QUEUE_DELAY).to_i).first
+        client.first_item table_name, 'perform_at' => {
+                attribute_value_list: [ (Time.now + Shoryuken::Later::MAX_QUEUE_DELAY).to_i ],
+                comparison_operator:  'LT'
+              }
       end
     
       # Processes an item and enqueues it (unless another actor has already enqueued it).
       def process_item(item)
-        time, worker_class, args, id = item.attributes.values_at('perform_at','shoryuken_class','shoryuken_args','id')
+        time, worker_class, args, id = item.values_at('perform_at','shoryuken_class','shoryuken_args','id')
         
         worker_class = worker_class.constantize
         args = JSON.parse(args)
         time = Time.at(time)
-        queue_name = item.attributes['shoryuken_queue']
+        queue_name = item['shoryuken_queue']
         
         # Conditionally delete an item prior to enqueuing it, ensuring only one actor may enqueue it.
-        begin item.delete(:if => {id: id})
+        begin client.delete_item table_name, item
         rescue AWS::DynamoDB::Errors::ConditionalCheckFailedException => e
           # Item was already deleted, so it does not need to be queued.
           return
@@ -71,10 +74,12 @@ module Shoryuken
         # For compatibility with Shoryuken's ActiveJob adapter, support an explicit queue name.
         else
           delay = (time - Time.now).to_i
+          body = JSON.dump(body) if body.is_a? Hash
           options[:delay_seconds] = delay if delay > 0
+          options[:message_body] = body
           options[:message_attributes] ||= {}
           options[:message_attributes]['shoryuken_class'] = { string_value: worker_class.to_s, data_type: 'String' }
-          Shoryuken::Client.send_message(queue_name, body, options)
+          Shoryuken::Client.queues(queue_name).send_message(options)
         end
       end
 

@@ -27,7 +27,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec",   '~> 3.0', '< 3.1'
   spec.add_development_dependency "pry-byebug"
 
-  spec.add_dependency "aws-sdk-v1"
   spec.add_dependency "timers", "~> 4.0.1"
-  spec.add_dependency "shoryuken", "~> 0.0.5"
+  spec.add_dependency "aws-sdk-core", "2.0.21"
+  spec.add_dependency "aws-sdk-resources", "2.0.21.pre"
+  spec.add_dependency "shoryuken", "> 0.0.5"
 end

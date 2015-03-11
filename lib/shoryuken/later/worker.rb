@@ -19,8 +19,8 @@ module Shoryuken
           else
             table = get_shoryuken_options['schedule_table'] || Shoryuken::Later.default_table
             args = JSON.dump(body: body, options: options)
-            Shoryuken::Later::Client.put_item(table, perform_at: time.to_i, shoryuken_args: args,
-                                                     shoryuken_class: self.to_s)
+            Shoryuken::Later::Client.create_item(table, perform_at: time.to_i, shoryuken_args: args,
+                                                        shoryuken_class: self.to_s)
           end
         end
       end
