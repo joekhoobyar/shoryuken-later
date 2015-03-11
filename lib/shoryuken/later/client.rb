@@ -28,7 +28,7 @@ module Shoryuken
         end
         
         def ddb
-          @ddb ||= AWS::DynamoDB::Client.new
+          @ddb ||= Aws::DynamoDB::Client.new
         end
       end
     end
