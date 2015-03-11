@@ -75,9 +75,10 @@ module Shoryuken
         else
           delay = (time - Time.now).to_i
           options[:delay_seconds] = delay if delay > 0
+          options[:message_body] = body
           options[:message_attributes] ||= {}
           options[:message_attributes]['shoryuken_class'] = { string_value: worker_class.to_s, data_type: 'String' }
-          Shoryuken::Client.send_message(queue_name, body, options)
+          Shoryuken::Client.queues(queue_name).send_message(options)
         end
       end
 
