@@ -34,31 +34,33 @@ module Shoryuken
         daemonize
         write_pid
         
-        logger.info 'Starting'
-        
-        # Initialize the timers and poller.
-        @timers = Timers::Group.new
-        require 'shoryuken/later/poller'
-        @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
+        Shoryuken::Logging.with_context '[later]' do
+          logger.info 'Starting'
           
-        begin
-          # Poll for items on startup, and every :poll_delay
-          poll_tables
-          @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
-          
-          # Loop watching for signals and firing off of timers
-          while @timers
-            interval = @timers.wait_interval
-            readable, writable = IO.select([self_read], nil, nil, interval)
-            if readable
-              handle_signal readable.first.gets.strip
-            else
-              @timers.fire
+          # Initialize the timers and poller.
+          @timers = Timers::Group.new
+          require 'shoryuken/later/poller'
+          @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
+            
+          begin
+            # Poll for items on startup, and every :poll_delay
+            poll_tables
+            @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
+            
+            # Loop watching for signals and firing off of timers
+            while @timers
+              interval = @timers.wait_interval
+              readable, writable = IO.select([self_read], nil, nil, interval)
+              if readable
+                handle_signal readable.first.gets.strip
+              else
+                @timers.fire
+              end
             end
+          rescue Interrupt
+            @timers.cancel
+            exit 0
           end
-        rescue Interrupt
-          @timers.cancel
-          exit 0
         end
       end
       
