@@ -7,6 +7,7 @@ require 'singleton'
 require 'optparse'
 require 'erb'
 require 'shoryuken/later'
+require 'timers'
 
 module Shoryuken
   module Later
@@ -14,8 +15,6 @@ module Shoryuken
       include Shoryuken::Util
       include Singleton
 
-      attr_accessor :launcher
-      
       def run(args)
         self_read, self_write = IO.pipe
 
@@ -34,37 +33,46 @@ module Shoryuken
         validate!
         daemonize
         write_pid
-        load_celluloid
-
-        require 'shoryuken/later/launcher'
-        @launcher = Shoryuken::Later::Launcher.new
-
+        
+        logger.info 'Starting'
+        
+        # Initialize the timers and poller.
+        @timers = Timers::Group.new
+        require 'shoryuken/later/poller'
+        @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
+          
         begin
-          launcher.run
-
-          while readable_io = IO.select([self_read])
-            signal = readable_io.first[0].gets.strip
-            handle_signal(signal)
+          # Poll for items on startup, and every :poll_delay
+          poll_tables
+          @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
+          
+          # Loop watching for signals and firing off of timers
+          loop do
+            interval = @timers.wait_interval
+            readable, writable = IO.select([self_read], nil, nil, interval)
+            if readable
+              handle_signal readable.first.gets.strip
+            else
+              @timers.fire
+            end
           end
         rescue Interrupt
-          launcher.stop(shutdown: true)
+          @timers.cancel
           exit 0
         end
       end
+      
+      protected
+      
+      def poll_tables
+        logger.debug "Polling schedule tables"
+        @pollers.each do |poller|
+          poller.poll
+        end
+        logger.debug "Polling done"
+      end
 
       private
-
-      def load_celluloid
-        raise "Celluloid cannot be required until here, or it will break Shoryuken::Later's daemonization" if defined?(::Celluloid) && Shoryuken::Later.options[:daemon]
-
-        # Celluloid can't be loaded until after we've daemonized
-        # because it spins up threads and creates locks which get
-        # into a very bad state if forked.
-        require 'celluloid/autostart'
-        Celluloid.logger = (Shoryuken::Later.options[:verbose] ? Shoryuken::Later.logger : nil)
-
-        require 'shoryuken/later/manager'
-      end
 
       def load_rails
         # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
@@ -182,28 +190,11 @@ module Shoryuken
         case sig
         when 'USR1'
           logger.info "Received USR1, will soft shutdown down"
-
-          launcher.stop
-
+          @timers.cancel
+          sleep 1 while @busy
           exit 0
-        when 'TTIN'
-          Thread.list.each do |thread|
-            logger.info "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}"
-            if thread.backtrace
-              logger.info thread.backtrace.join("\n")
-            else
-              logger.info "<no backtrace available>"
-            end
-          end
-          
-          idle   = launcher.manager.instance_variable_get(:@idle).size
-          busy   = launcher.manager.instance_variable_get(:@busy).size
-          tables = launcher.manager.instance_variable_get(:@tables)
-
-          logger.info "Idle: #{idle}, Busy: #{busy}, Polled Tables: #{tables.join(', ')}"
         else
           logger.info "Received #{sig}, will shutdown down"
-
           raise Interrupt
         end
       end
