@@ -4,21 +4,31 @@ module Shoryuken
   module Later
     class Client
       @@tables = {}
-        
+      
       class << self
         def tables(table)
-          @@tables[table.to_s] ||= ddb.tables[table].tap do |tbl|
-            tbl.hash_key = [:id, :string]
-          end
+          @@tables[table] = ddb.describe_table(table_name: table)
         end
         
-        def put_item(table, attributes, options={unless_exists: 'id'})
-          attributes['id'] ||= SecureRandom.uuid
-          tables(table).items.create(attributes, options)
+        def first_item(table, filter=nil)
+          result = ddb.scan(table_name: table, limit: 1, scan_filter: filter)
+          result.items.first if result
+        end
+        
+        def create_item(table, item)
+          item['id'] ||= SecureRandom.uuid
+          
+          ddb.put_item(table_name: table, item: item,
+                       expected: {id: {exists: false}})
+        end
+        
+        def delete_item(table, item)
+          ddb.delete_item(table_name: table, item: {id: item['id']},
+                          expected: {id: {value: item['id'], exists: true}})
         end
         
         def ddb
-          @ddb ||= AWS::DynamoDB.new
+          @ddb ||= AWS::DynamoDB::Client.new
         end
       end
     end

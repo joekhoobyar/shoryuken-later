@@ -30,12 +30,13 @@ module ActiveJob
 
           delay = (timestamp - Time.current.to_f).round
           if delay > 15.minutes
-            Shoryuken::Later::Client.put_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
-                                                                              shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
-                                                                              shoryuken_args: JSON.dump(body: job.serialize, options: {}))
+            Shoryuken::Later::Client.create_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
+                                                                                 shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
+                                                                                 shoryuken_args: JSON.dump(body: job.serialize, options: {}))
           else
-            Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay,
-                                                                          message_attributes: message_attributes)
+            Shoryuken::Client.queues(job.queue_name).send_message(message_body: job.serialize,
+                                                                  message_attributes: message_attributes,
+                                                                  delay_seconds: delay)
           end
         end
       end

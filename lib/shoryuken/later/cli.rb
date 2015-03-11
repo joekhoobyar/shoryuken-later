@@ -251,11 +251,9 @@ module Shoryuken
         Shoryuken::Later.tables.uniq.each do |table|
           # validate all tables and AWS credentials consequently
           begin
-            unless Shoryuken::Later::Client.tables(table).exists?
-              raise ArgumentError, "Table '#{table}' does not exist"
-            end
-          rescue => e
-            raise
+            Shoryuken::Later::Client.tables table
+          rescue Aws::DynamoDB::Errors::ResourceNotFoundException => e
+            raise ArgumentError, "Table '#{table}' does not exist"
           end
         end
       end
@@ -263,7 +261,23 @@ module Shoryuken
       def initialize_aws
         # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # when not explicit supplied
-        AWS.config Shoryuken::Later.options[:aws] if Shoryuken::Later.options[:aws]
+        return if Shoryuken::Later.options[:aws].empty?
+  
+        shoryuken_keys = %i(
+          account_id
+          sns_endpoint
+          sqs_endpoint
+          receive_message)
+  
+        aws_options = Shoryuken::Later.options[:aws].reject do |k, v|
+          shoryuken_keys.include?(k)
+        end
+  
+        credentials = Aws::Credentials.new(
+          aws_options.delete(:access_key_id),
+          aws_options.delete(:secret_access_key))
+  
+        Aws.config = aws_options.merge(credentials: credentials)
       end
 
       def require_workers
