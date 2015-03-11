@@ -51,6 +51,23 @@ queues:
 
 ## Usage
 
+### Starting the schedule poller
+
+Start the `shoryuken-later` schedule poller with a command like:
+
+```shell
+bundle exec shoryuken-later --config shoryuken.yml
+```
+
+Run it as a daemon inside of your Rails app with a command like: 
+
+```shell
+bundle exec shoryuken-later --config shoryuken.yml --rails --daemon
+```
+
+[Command-line options](https://github.com/joekhoobyar/shoryuken-later/wiki/Command-line-options)
+
+
 ### Integration with ActiveJob
 
 A custom ActiveJob adapter can used to support delaying messages arbitrarily far into the future.
@@ -113,6 +130,8 @@ Or install it yourself as:
     $ gem install shoryuken-later
     
 ## Documentation
+
+Learn about using Shoryuken::Later at the [Shoryuken::Later Wiki](https://github.com/joekhoobyar/shoryuken-later/wiki).
 
 Learn about using Shoryuken at the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
 
