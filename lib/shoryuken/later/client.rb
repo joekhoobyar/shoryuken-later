@@ -7,7 +7,7 @@ module Shoryuken
       
       class << self
         def tables(table)
-          @@tables[table] = ddb.describe_table(table_name: table)
+          @@tables[table] ||= ddb.describe_table(table_name: table)
         end
         
         def first_item(table, filter=nil)
@@ -23,7 +23,7 @@ module Shoryuken
         end
         
         def delete_item(table, item)
-          ddb.delete_item(table_name: table, item: {id: item['id']},
+          ddb.delete_item(table_name: table, key: {id: item['id']},
                           expected: {id: {value: item['id'], exists: true}})
         end
         

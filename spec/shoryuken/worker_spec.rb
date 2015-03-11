@@ -21,7 +21,7 @@ describe 'Shoryuken::Worker' do
       json = JSON.dump(body: 'message', options: {})
       future = Time.now + 15 * 60 + 1
       
-      expect(Shoryuken::Later::Client).to receive(:put_item) do |table,attrs|
+      expect(Shoryuken::Later::Client).to receive(:create_item) do |table,attrs|
         expect(attrs[:perform_at]).to be >= future.to_i
         expect(attrs[:shoryuken_args]).to eq(json)
         expect(attrs[:shoryuken_class]).to eq('TestWorker')
