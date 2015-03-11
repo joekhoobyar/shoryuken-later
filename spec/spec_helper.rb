@@ -1,7 +1,6 @@
 require 'bundler/setup'
 Bundler.setup
 
-require 'celluloid'
 require 'shoryuken-later'
 require 'json'
 
@@ -16,7 +15,6 @@ if File.exists? options_file
 end
 
 Shoryuken.logger.level = Logger::UNKNOWN
-Celluloid.logger.level = Logger::UNKNOWN
 
 # For Ruby 1.9
 module Kernel
