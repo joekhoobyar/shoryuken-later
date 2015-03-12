@@ -27,6 +27,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec",   '~> 3.0', '< 3.1'
 
   spec.add_dependency "aws-sdk-v1"
-  spec.add_dependency "celluloid", "~> 0.15.2"
-  spec.add_dependency "shoryuken", "~> 0.0.4"
+  spec.add_dependency "timers", "~> 1.1.0"
+  spec.add_dependency "shoryuken", "= 0.0.4"
 end

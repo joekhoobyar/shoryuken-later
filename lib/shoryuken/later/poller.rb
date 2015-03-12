@@ -3,16 +3,12 @@ require 'json'
 module Shoryuken
   module Later
     class Poller
-      include Celluloid
       include Shoryuken::Util
       
       attr_reader :table_name
       
-      def initialize(manager, table_name)
-        @manager = manager
+      def initialize(table_name)
         @table_name = table_name
-        
-        @manager.async.poller_ready(@table_name, self)
       end
       
       def poll
@@ -25,12 +21,10 @@ module Shoryuken
             while item = next_item
               id = item.attributes['id']
               logger.info "Found message #{id} from '#{@table_name}'"
-              defer do
-                if sent_msg = process_item(item)
-                  logger.debug { "Enqueued message #{id} from '#{@table_name}' as #{sent_msg.id}" }
-                else
-                  logger.debug { "Skipping already queued message #{id} from '#{@table_name}'" }
-                end
+              if sent_msg = process_item(item)
+                logger.debug { "Enqueued message #{id} from '#{@table_name}' as #{sent_msg.id}" }
+              else
+                logger.debug { "Skipping already queued message #{id} from '#{@table_name}'" }
               end
             end
   
@@ -39,8 +33,6 @@ module Shoryuken
             logger.error "Error fetching message: #{ex}"
             logger.error ex.backtrace.first
           end
-            
-          @manager.async.poller_done(@table_name, self)
         end
       end
 
