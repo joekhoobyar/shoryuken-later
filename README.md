@@ -5,6 +5,12 @@ to delay messages arbitrarily far into the future.
 
 ## Features
 
+### Supports distributed architectures
+
+An SQS message is *only* queued if a _conditional_ delete of the DDB item is successful. This eliminates any potential race condition, so if more than one `shoryuken-later` process is polling the same schedule table then no redundant SQS messages will be queued.
+
+NOTE: You shouldn't really _need_ to run more than one process, but if you do it will be safe.
+
 ### One or more schedule tables
 
 Supports polling one or more DynamoDB tables for messages.
@@ -44,6 +50,23 @@ queues:
 ```
 
 ## Usage
+
+### Starting the schedule poller
+
+Start the `shoryuken-later` schedule poller with a command like:
+
+```shell
+bundle exec shoryuken-later --config shoryuken.yml
+```
+
+Run it as a daemon inside of your Rails app with a command like: 
+
+```shell
+bundle exec shoryuken-later --config shoryuken.yml --rails --daemon
+```
+
+[Command-line options](https://github.com/joekhoobyar/shoryuken-later/wiki/Command-line-options)
+
 
 ### Integration with ActiveJob
 
@@ -107,6 +130,8 @@ Or install it yourself as:
     $ gem install shoryuken-later
     
 ## Documentation
+
+Learn about using Shoryuken::Later at the [Shoryuken::Later Wiki](https://github.com/joekhoobyar/shoryuken-later/wiki).
 
 Learn about using Shoryuken at the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
 
