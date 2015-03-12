@@ -7,7 +7,7 @@ module Shoryuken
       module ClassMethods
         
         def perform_later(time, body, options = {})
-          time = Time.now + time.to_i if Numeric===time
+          time = Time.now + time.to_i if time.is_a?(Numeric)
           time = time.to_time if time.respond_to?(:to_time)
           raise ArgumentError, 'expected Numeric, Time but got '+time.class.name unless Time===time
           
