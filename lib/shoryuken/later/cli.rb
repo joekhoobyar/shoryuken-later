@@ -37,7 +37,7 @@ module Shoryuken
         logger.info 'Starting'
         
         # Initialize the timers and poller.
-        @timers = Timers::Group.new
+        @timers = Timers.new
         require 'shoryuken/later/poller'
         @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
           
