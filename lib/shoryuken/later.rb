@@ -23,7 +23,7 @@ module Shoryuken
     
     class << self
       def options
-        @options ||= DEFAULTS.dup
+        @options ||= DEFAULTS.dup.tap{|h| h[:later] = h[:later].dup }
       end
       
       def poll_delay

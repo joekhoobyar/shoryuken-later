@@ -52,7 +52,7 @@ describe Shoryuken::Later::Poller do
     
     it 'does not enqueue a message if the item could not be deleted' do
       expect(TestWorker).not_to receive(:perform_in)
-      expect(Shoryuken::Later::Client).to receive(:delete_item).with(table, ddb_item){ raise AWS::DynamoDB::Errors::ConditionalCheckFailedException }
+      expect(Shoryuken::Later::Client).to receive(:delete_item).with(table, ddb_item){ raise Aws::DynamoDB::Errors::ConditionalCheckFailedException.new(nil,nil) }
       
       subject.send(:process_item, ddb_item)
     end

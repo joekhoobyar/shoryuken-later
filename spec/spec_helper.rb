@@ -1,6 +1,11 @@
 require 'bundler/setup'
 Bundler.setup
 
+if ENV['CODECLIMATE_REPO_TOKEN']
+  require 'codeclimate-test-reporter'
+  CodeClimate::TestReporter.start
+end
+
 require 'shoryuken-later'
 require 'json'
 
@@ -11,7 +16,7 @@ $options = {}
 if File.exists? options_file
   $options = YAML.load(File.read(options_file)).deep_symbolize_keys
 
-  AWS.config $options[:aws]
+  Aws.config = $options[:aws]
 end
 
 Shoryuken.logger.level = Logger::UNKNOWN

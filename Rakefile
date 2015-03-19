@@ -21,7 +21,7 @@ task :console do
 
   if File.exist? config_file
     config = YAML.load File.read(config_file)
-    AWS.config(config['aws'])
+    Aws.config = config['aws']
   end
 
   ARGV.clear
