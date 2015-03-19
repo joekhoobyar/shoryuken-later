@@ -3,6 +3,9 @@
 A scheduling plugin for [Shoryuken](https://github.com/phstc/shoryuken) that uses [Dynamo DB](https://aws.amazon.com/dynamodb/)
 to delay messages arbitrarily far into the future.
 
+[![Build Status](https://travis-ci.org/joekhoobyar/shoryuken-later.svg)](https://travis-ci.org/joekhoobyar/shoryuken-later)
+[![Code Climate](https://codeclimate.com/github/joekhoobyar/shoryuken-later/badges/gpa.svg)](https://codeclimate.com/github/joekhoobyar/shoryuken-later)
+
 ## Features
 
 ### Supports distributed architectures
