@@ -61,7 +61,7 @@ module Shoryuken
         
         # Conditionally delete an item prior to enqueuing it, ensuring only one actor may enqueue it.
         begin client.delete_item table_name, item
-        rescue AWS::DynamoDB::Errors::ConditionalCheckFailedException => e
+        rescue Aws::DynamoDB::Errors::ConditionalCheckFailedException => e
           # Item was already deleted, so it does not need to be queued.
           return
         end

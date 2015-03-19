@@ -12,7 +12,7 @@ describe 'Shoryuken::Worker' do
 
   describe '.perform_later' do
     it 'delays a message for up to 15 minutes in the future' do
-      expect(sqs_queue).to receive(:send_message).with('message', { message_attributes: msg_attrs, delay_seconds: 15 * 60 })
+      expect(sqs_queue).to receive(:send_message).with({ message_body: 'message', message_attributes: msg_attrs, delay_seconds: 15 * 60 })
         
       TestWorker.perform_later(15 * 60, 'message')
     end
