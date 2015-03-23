@@ -61,6 +61,7 @@ RSpec.configure do |config|
 
     Shoryuken::Later.tables.replace(['shoryuken_later'])
 
+    Shoryuken::Later.options[:later] = {}
     Shoryuken::Later.options[:later][:delay] = 60
     Shoryuken::Later.options[:later][:tables] = ['shoryuken_later']
     Shoryuken::Later.options[:timeout]       = 1
