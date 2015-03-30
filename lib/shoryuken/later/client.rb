@@ -11,8 +11,12 @@ module Shoryuken
         end
         
         def first_item(table, filter=nil)
-          result = ddb.scan(table_name: table, limit: 1, scan_filter: filter)
-          result.items.first if result
+          item = nil
+          response = ddb.scan(table_name: table, limit: 1, scan_filter: filter)
+          response.each do |result|
+            item = result.items.first and break
+          end
+          item
         end
         
         def create_item(table, item)
