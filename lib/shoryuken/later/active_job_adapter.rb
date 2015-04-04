@@ -23,20 +23,33 @@ module ActiveJob
     #   Rails.application.config.active_job.queue_adapter = :shoryuken_later
     class ShoryukenLaterAdapter < ShoryukenAdapter
       JobWrapper = ShoryukenAdapter::JobWrapper
-      
+
       class << self
         def enqueue_at(job, timestamp) #:nodoc:
           register_worker!(job)
 
           delay = (timestamp - Time.current.to_f).round
           if delay > 15.minutes
-            Shoryuken::Later::Client.create_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
-                                                                                 shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
-                                                                                 shoryuken_args: JSON.dump(body: job.serialize, options: {}))
+            # The job is scheduled 15 minutes or more for now, so it needs to be
+            # warehoused elsewhere until it's ready to be moved over to SQS
+
+            table = Shoryuken::Later.default_table
+
+            Shoryuken::Later::Client.create_item(table, {
+              perform_at: Time.current.to_i + delay.to_i,
+              shoryuken_queue: job.queue_name,
+              shoryuken_class: JobWrapper.to_s,
+              shoryuken_args: JSON.dump(body: job.serialize, options: {})
+            })
           else
-            Shoryuken::Client.queues(job.queue_name).send_message(message_body: job.serialize,
-                                                                  message_attributes: message_attributes,
-                                                                  delay_seconds: delay)
+            # The job is scheduled for less than 15 minutes from now, so it
+            # can be sent directly to SQS
+
+            Shoryuken::Client.queues(job.queue_name).send_message({
+              message_body: job.serialize,
+              message_attributes: message_attributes,
+              delay_seconds: delay
+            })
           end
         end
       end
