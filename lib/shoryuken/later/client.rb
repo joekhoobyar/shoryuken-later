@@ -4,21 +4,31 @@ module Shoryuken
   module Later
     class Client
       @@tables = {}
-      
+
       class << self
         def tables(table)
           @@tables[table] ||= ddb.describe_table(table_name: table)
         end
-        
-        def first_item(table, filter=nil)
-          item = nil
-          response = ddb.scan(table_name: table, limit: 1, scan_filter: filter)
-          response.each do |result|
-            item = result.items.first and break
-          end
-          item
+
+        def items(table)
+          threshold = (Time.now + Shoryuken::Later::MAX_QUEUE_DELAY).to_i
+          params = {
+            table_name: table,
+            key_conditions: {
+              scheduler: {
+                attribute_value_list: [ "shoryuken-later" ],
+                comparison_operator: "EQ",
+              },
+              perform_at: {
+                attribute_value_list: [ threshold ],
+                comparison_operator: "LT",
+              },
+            }
+          }
+
+          ddb.query(params).inject([]) { |m, r| m += r; m }
         end
-        
+
         def create_item(table, item)
           # Items are intended for tables with hash+range primary keys. The
           # `scheduler` hash key is essentially meaningless, it but a hash key
@@ -42,7 +52,7 @@ module Shoryuken
             # expected: { perform_at: { exists: false } }
           }
         end
-        
+
         def delete_item(table, item)
           params = {
             table_name: table,
@@ -55,7 +65,7 @@ module Shoryuken
 
           ddb.delete_item(params)
         end
-        
+
         def ddb
           @ddb ||= Aws::DynamoDB::Client.new
         end
