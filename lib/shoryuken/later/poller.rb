@@ -17,22 +17,12 @@ module Shoryuken
 
           logger.debug { "Polling for scheduled messages in '#{table_name}'" }
 
-          begin
-            client.items.each do |item|
-              logger.info "Found message #{item['id']} from '#{table_name}'"
+          items = client.items(table_name)
 
-              # TODO Should be able to process these in batches of 10
-              if sent_msg = process_item(item)
-                logger.debug { "Enqueued message #{id} from '#{table_name}'" }
-              else
-                logger.debug { "Skipping already queued message #{id} from '#{table_name}'" }
-              end
-            end
+          logger.info "Found #{items.count} message from '#{table_name}'"
 
-            logger.debug { "Poller for '#{table_name}' completed in #{elapsed(started_at)} ms" }
-          rescue => ex
-            logger.error "Error fetching message: #{ex}"
-            logger.error ex.backtrace.first
+          items.each_slice(10) do |batch_items|
+            process_items(batch_items)
           end
         end
       end
@@ -43,8 +33,19 @@ module Shoryuken
         Shoryuken::Later::Client
       end
 
-      # Processes an item and enqueues it (unless another actor has already enqueued it).
-      def process_item(item)
+      def process_items(items)
+        # Pre-process items to determine if they should be enqueued
+        entries = items.map{ |item| preprocess_item(item) }.compact
+
+        # Enqueue the batch of messages for viable items
+        Shoryuken::Client.queues(queue_name).send_messages(entries)
+
+        logger.debug { "Enqueued #{entries.count} of #{items.count} messages from '#{table_name}'" }
+      end
+
+      # Pre-processes an item (unless another actor has already enqueued it),
+      # preparing it to get enqueued.
+      def preprocess_item(item)
         time, worker_class, args, id = item.values_at('perform_at','shoryuken_class','shoryuken_args','id')
 
         worker_class = worker_class.constantize
@@ -64,6 +65,7 @@ module Shoryuken
         if queue_name.nil?
           worker_class.perform_in(time, body, options)
 
+          return
         # For compatibility with Shoryuken's ActiveJob adapter, support an explicit queue name.
         else
           delay = (time - Time.now).to_i
@@ -72,10 +74,10 @@ module Shoryuken
           options[:message_body] = body
           options[:message_attributes] ||= {}
           options[:message_attributes]['shoryuken_class'] = { string_value: worker_class.to_s, data_type: 'String' }
-          Shoryuken::Client.queues(queue_name).send_message(options)
+
+          return options
         end
       end
-
     end
   end
 end
