@@ -34,13 +34,19 @@ module Shoryuken
       end
 
       def process_items(items)
-        # Pre-process items to determine if they should be enqueued
-        entries = items.map{ |item| preprocess_item(item) }.compact
+        entries = preprocess_items(items)
 
         # Enqueue the batch of messages for viable items
-        Shoryuken::Client.queues(queue_name).send_messages(entries)
+        if entries.count > 0
+          Shoryuken::Client.queues(queue_name).send_messages(entries)
+        end
 
         logger.debug { "Enqueued #{entries.count} of #{items.count} messages from '#{table_name}'" }
+      end
+
+      # Returns a set of message options (entities) that can be enqueued
+      def preprocess_items(items)
+        items.map{ |item| preprocess_item(item) }.compact
       end
 
       # Pre-processes an item (unless another actor has already enqueued it),
