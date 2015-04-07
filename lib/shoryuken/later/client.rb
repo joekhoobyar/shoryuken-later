@@ -45,25 +45,23 @@ module Shoryuken
           # Mostly for record keeping
           item['id'] = SecureRandom.uuid
 
-          params = {
+          ddb.put_item({
             table_name: table,
-            item: table,
+            item: item,
             # condition_expression: "" # TODO `expected` is deprecated
             # expected: { perform_at: { exists: false } }
-          }
+          })
         end
 
         def delete_item(table, item)
-          params = {
+          ddb.delete_item({
             table_name: table,
             key: {
               scheduler: item['scheduler'],
               perform_at: item['perform_at']
             },
             # expected: { perform_at: { value: item['perform_at'], exists: true } } # TODO Deprecated
-          }
-
-          ddb.delete_item(params)
+          })
         end
 
         def ddb
