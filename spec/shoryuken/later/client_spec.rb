@@ -18,18 +18,13 @@ describe Shoryuken::Later::Client do
       expect(described_class.tables(table)).to eq(table_description)
     end
   end
-  
+
   describe '.create_item' do
-    it 'creates an item with a supplied ID' do
-      expect(ddb).to receive(:put_item).with(table_name: table, item: {'id' => 'fubar'}, expected: {id: {exists: false}})
-        
-      described_class.create_item(table,'id' => 'fubar')
-    end
-    
-    it 'creates an item with a auto-generated ID' do
+    it 'creates an item with unique hash and range key' do
       expect(SecureRandom).to receive(:uuid).once.and_return('fubar')
-      expect(ddb).to receive(:put_item).with(table_name: table, item: {'id' => 'fubar', 'perform_at' => 1234}, expected: {id: {exists: false}})
-        
+      expect(Random).to receive(:rand).once.and_return(5678)
+      expect(ddb).to receive(:put_item).with(table_name: table, item: {'id' => 'fubar', 'perform_at' => '1234.5678', 'scheduler' => 'shoryuken-later'})
+
       described_class.create_item(table,'perform_at' => 1234)
     end
   end
