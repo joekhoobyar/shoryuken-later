@@ -247,13 +247,7 @@ module Shoryuken
 
       def validate!
         raise ArgumentError, 'No tables given to poll' if Shoryuken::Later.tables.empty?
-
-        # TODO : SHoryuken 3 no longer uses aws from config file
-        if Shoryuken::Later.options[:aws][:access_key_id].nil? && Shoryuken::Later.options[:aws][:secret_access_key].nil?
-          if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
-            raise ArgumentError, 'No AWS credentials supplied'
-          end
-        end
+        raise ArgumentError, 'No AWS credentials found' unless aws_credentials?
 
         initialize_aws
 
@@ -265,6 +259,17 @@ module Shoryuken
             raise ArgumentError, "Table '#{table}' does not exist"
           end
         end
+      end
+
+      # Attempts to detect AWS credentials
+      # - From Shoryuken later config
+      # - From ENV variable
+      # - From instance profile credentials
+      def aws_credentials?
+        from_options = Shoryuken::Later.options[:aws]
+        from_options[:access_key_id].present? && from_options[:secret_access_key].present? ||
+          ENV['AWS_ACCESS_KEY_ID'].present? && ENV['AWS_SECRET_ACCESS_KEY'].present? ||
+          Aws::InstanceProfileCredentials.new(retries: 1).set?
       end
 
       def initialize_aws
