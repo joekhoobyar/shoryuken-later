@@ -34,15 +34,15 @@ module Shoryuken
         validate!
         daemonize
         write_pid
-        
+
         Shoryuken::Logging.with_context '[later]' do
           logger.info 'Starting'
           start
         end
       end
-      
+
       protected
-      
+
       def poll_tables
         logger.debug "Polling schedule tables"
         @pollers.each do |poller|
@@ -52,17 +52,17 @@ module Shoryuken
       end
 
       private
-      
+
       def start
         # Initialize the timers and poller.
         @timers = Timers::Group.new
         @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
-          
+
         begin
           # Poll for items on startup, and every :poll_delay
           poll_tables
           @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
-          
+
           # Loop watching for signals and firing off of timers
           while @timers
             interval = @timers.wait_interval
@@ -216,16 +216,19 @@ module Shoryuken
 
         Shoryuken::Later.options[:later].merge!(options.delete(:later) || {})
         Shoryuken::Later.options.merge!(options)
-        
+
         # Tables from command line options take precedence...
         unless Shoryuken::Later.tables.any?
           tables = Shoryuken::Later.options[:later][:tables]
 
           # Use the default table if none were specified in the config file.
           tables << Shoryuken::Later.default_table if tables.empty?
-          
+
           Shoryuken::Later.tables.replace(tables)
         end
+
+        # Extra processing from config : prefixes, etc.
+        Shoryuken::Later.process_options
       end
 
       def parse_config(config_file)
@@ -245,6 +248,7 @@ module Shoryuken
       def validate!
         raise ArgumentError, 'No tables given to poll' if Shoryuken::Later.tables.empty?
 
+        # TODO : SHoryuken 3 no longer uses aws from config file
         if Shoryuken::Later.options[:aws][:access_key_id].nil? && Shoryuken::Later.options[:aws][:secret_access_key].nil?
           if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
             raise ArgumentError, 'No AWS credentials supplied'
@@ -267,21 +271,21 @@ module Shoryuken
         # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # when not explicit supplied
         return if Shoryuken::Later.options[:aws].empty?
-  
+
         shoryuken_keys = %i(
           account_id
           sns_endpoint
           sqs_endpoint
           receive_message)
-  
+
         aws_options = Shoryuken::Later.options[:aws].reject do |k, v|
           shoryuken_keys.include?(k)
         end
-  
+
         credentials = Aws::Credentials.new(
           aws_options.delete(:access_key_id),
           aws_options.delete(:secret_access_key))
-  
+
         Aws.config = aws_options.merge(credentials: credentials)
       end
 
