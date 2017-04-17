@@ -70,9 +70,8 @@ module Shoryuken
         table_name_delimiter = ::ActiveJob::Base.queue_name_delimiter
 
         # See https://github.com/rails/rails/blob/master/activejob/lib/active_job/queue_name.rb#L27
-        Shoryuken::Later.tables.map! do |table_name, weight|
-          name_parts = [table_name_prefix, table_name]
-          name_parts.compact.join(table_name_delimiter)
+        Shoryuken::Later.tables.map! do |table_name|
+          [table_name_prefix, table_name].compact.join(table_name_delimiter)
         end
       end
     end

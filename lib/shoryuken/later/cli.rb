@@ -217,9 +217,6 @@ module Shoryuken
         Shoryuken::Later.options[:later].merge!(options.delete(:later) || {})
         Shoryuken::Later.options.merge!(options)
 
-        # Extra processing from config : prefixes, etc.
-        Shoryuken::Later.process_options
-
         # Tables from command line options take precedence...
         unless Shoryuken::Later.tables.any?
           tables = Shoryuken::Later.options[:later][:tables]
@@ -229,6 +226,9 @@ module Shoryuken
 
           Shoryuken::Later.tables.replace(tables)
         end
+
+        # Extra processing from config : prefixes, etc.
+        Shoryuken::Later.process_options
       end
 
       def parse_config(config_file)
