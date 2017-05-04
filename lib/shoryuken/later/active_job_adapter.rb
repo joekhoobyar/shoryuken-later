@@ -23,21 +23,20 @@ module ActiveJob
     #   Rails.application.config.active_job.queue_adapter = :shoryuken_later
     class ShoryukenLaterAdapter < ShoryukenAdapter
       JobWrapper = ShoryukenAdapter::JobWrapper
-      
-      class << self
-        def enqueue_at(job, timestamp) #:nodoc:
-          register_worker!(job)
 
-          delay = (timestamp - Time.current.to_f).round
-          if delay > 15.minutes
-            Shoryuken::Later::Client.create_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
-                                                                                 shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
-                                                                                 shoryuken_args: JSON.dump(body: job.serialize, options: {}))
-          else
-            Shoryuken::Client.queues(job.queue_name).send_message(message_body: job.serialize,
-                                                                  message_attributes: message_attributes,
-                                                                  delay_seconds: delay)
-          end
+      # This will override ShoryukenAdapter's enqueue_at
+      # - When the wait is > 15 minutes, delegate to Shoryuken::Later
+      # - Otherwise fall back to Shoryuken (super)
+      def enqueue_at(job, timestamp) #:nodoc:
+        register_worker!(job)
+
+        delay = (timestamp - Time.current.to_f).round
+        if delay > 15.minutes
+          Shoryuken::Later::Client.create_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
+                                                                               shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
+                                                                               shoryuken_args: JSON.dump(body: job.serialize, options: {}))
+        else
+          super
         end
       end
     end
