@@ -24,17 +24,21 @@ module ActiveJob
     class ShoryukenLaterAdapter < ShoryukenAdapter
       JobWrapper = ShoryukenAdapter::JobWrapper
 
-      # This will override ShoryukenAdapter's enqueue_at
+      # This will override Shoryuken Adapter's enqueue_at to use Shoryuken::Later when possible
       # - When the wait is > 15 minutes, delegate to Shoryuken::Later
+      #   - In that case it will use either job.table_name or fallback job.queue_name for the DynamoDB table
       # - Otherwise fall back to Shoryuken (super)
       def enqueue_at(job, timestamp) #:nodoc:
         register_worker!(job)
 
         delay = (timestamp - Time.current.to_f).round
         if delay > 15.minutes
-          Shoryuken::Later::Client.create_item(Shoryuken::Later.default_table, perform_at: Time.current.to_i + delay.to_i,
-                                                                               shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
-                                                                               shoryuken_args: JSON.dump(body: job.serialize, options: {}))
+          Shoryuken::Later::Client.create_item(
+            job.respond_to?(:table_name?) ? job.table_name : job.queue_name,
+            perform_at: Time.current.to_i + delay.to_i,
+            shoryuken_queue: job.queue_name, shoryuken_class: JobWrapper.to_s,
+            shoryuken_args: JSON.dump(body: job.serialize, options: {})
+          )
         else
           super
         end
