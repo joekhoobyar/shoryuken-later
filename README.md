@@ -36,7 +36,7 @@ aws:
   secret_access_key:  ...       # or <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
   region:             us-east-1 # or <%= ENV['AWS_REGION'] %>
 logfile: some/path/to/file.log
-  
+
 # This key is only used by Shoryuken::Later
 later:
   delay: 5 * 60   # How frequently to poll the schedule table, in seconds.
@@ -62,7 +62,7 @@ Start the `shoryuken-later` schedule poller with a command like:
 bundle exec shoryuken-later --config shoryuken.yml
 ```
 
-Run it as a daemon inside of your Rails app with a command like: 
+Run it as a daemon inside of your Rails app with a command like:
 
 ```shell
 bundle exec shoryuken-later --config shoryuken.yml --rails --daemon
@@ -82,9 +82,12 @@ config.active_job.queue_adapter = :shoryuken_later
 
 When you use the `:shoryuken_later` queue adapter, jobs to be performed farther than 15 minutes into the future (by setting the `wait` or `wait_until` ActiveJob options), will be inserted into the *default* schedule table.  You can set the default schedule table in an initializer.
 
+You can also reuse ActiveJob's default prefix for job as prefix for the table names
+
 ```ruby
 # config/initializers/shoryuken_later.rb
-Shoryuken::Later.default_table = "#{Rails.env}_myapp_later"
+Shoryuken::Later.default_table = "shoryuken_later"
+Shoryuken::Later.active_job_table_name_prefixing = true
 ```
 
 
@@ -97,7 +100,7 @@ A new method named `perform_later` is added to `Shoryuken::Worker` allowing mess
 
  class MyWorker
    include Shoryuken::Worker
-  
+
    shoryuken_options queue: 'default', schedule_table: 'default_schedule'
  end
 
@@ -131,7 +134,7 @@ And then execute:
 Or install it yourself as:
 
     $ gem install shoryuken-later
-    
+
 ## Documentation
 
 Learn about using Shoryuken::Later at the [Shoryuken::Later Wiki](https://github.com/joekhoobyar/shoryuken-later/wiki).
