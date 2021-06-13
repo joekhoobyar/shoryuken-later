@@ -245,9 +245,11 @@ module Shoryuken
       def validate!
         raise ArgumentError, 'No tables given to poll' if Shoryuken::Later.tables.empty?
 
-        if Shoryuken::Later.options[:aws][:access_key_id].nil? && Shoryuken::Later.options[:aws][:secret_access_key].nil?
-          if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
-            raise ArgumentError, 'No AWS credentials supplied'
+        unless ENV['LOCALSTACK']
+          if Shoryuken::Later.options[:aws][:access_key_id].nil? && Shoryuken::Later.options[:aws][:secret_access_key].nil?
+            if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
+              raise ArgumentError, 'No AWS credentials supplied'
+            end
           end
         end
 
