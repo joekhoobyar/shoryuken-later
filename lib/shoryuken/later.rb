@@ -2,6 +2,7 @@ require 'shoryuken'
 require 'shoryuken/later/version'
 require 'shoryuken/later/client'
 require 'shoryuken/later/worker'
+require 'shoryuken/later/item_processor'
 
 module Shoryuken
   module Later

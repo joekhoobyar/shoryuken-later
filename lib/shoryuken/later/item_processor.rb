@@ -1,7 +1,7 @@
 module Shoryuken
   module Later
     class ItemProcessor
-      def self.call(item)
+      def self.call(item, client)
         time, worker_class, args = item.values_at('perform_at','shoryuken_class','shoryuken_args')
 
         worker_class = worker_class.constantize
