@@ -9,6 +9,7 @@ require 'erb'
 require 'shoryuken/later'
 require 'shoryuken/later/poller'
 require 'timers'
+require 'aws-sdk-dynamodb'
 
 module Shoryuken
   module Later
@@ -56,12 +57,12 @@ module Shoryuken
       def start
         # Initialize the timers and poller.
         @timers = Timers::Group.new
-        @pollers = Shoryuken::Later.tables.map{|tbl| Poller.new(tbl) }
+        @pollers = Shoryuken::Later.tables.map{ |tbl| Poller.new(tbl) }
           
         begin
           # Poll for items on startup, and every :poll_delay
           poll_tables
-          @timers.every(Shoryuken::Later.poll_delay){ poll_tables }
+          @timers.every(Shoryuken::Later.poll_delay) { poll_tables }
           
           # Loop watching for signals and firing off of timers
           while @timers
@@ -146,7 +147,7 @@ module Shoryuken
             opts[:daemon] = arg
           end
 
-          o.on '-t', '--table TABLE...', 'Table to process' do |arg|
+          o.on '-t', '--table TABLE...', 'Table to process' do
             Shoryuken::Later.tables << args
           end
 
@@ -174,7 +175,7 @@ module Shoryuken
             opts[:verbose] = arg
           end
 
-          o.on '-V', '--version', 'Print version and exit' do |arg|
+          o.on '-V', '--version', 'Print version and exit' do
             puts "Shoryuken::Later #{Shoryuken::Later::VERSION}"
             exit 0
           end
@@ -216,14 +217,14 @@ module Shoryuken
 
         Shoryuken::Later.options[:later].merge!(options.delete(:later) || {})
         Shoryuken::Later.options.merge!(options)
-        
+
         # Tables from command line options take precedence...
         unless Shoryuken::Later.tables.any?
           tables = Shoryuken::Later.options[:later][:tables]
 
           # Use the default table if none were specified in the config file.
           tables << Shoryuken::Later.default_table if tables.empty?
-          
+
           Shoryuken::Later.tables.replace(tables)
         end
       end
@@ -254,10 +255,7 @@ module Shoryuken
         initialize_aws
 
         Shoryuken::Later.tables.uniq.each do |table|
-          # validate all tables and AWS credentials consequently
-          begin
-            Shoryuken::Later::Client.tables table
-          rescue Aws::DynamoDB::Errors::ResourceNotFoundException => e
+          unless Shoryuken::Later::Client.new(table).table_exist?
             raise ArgumentError, "Table '#{table}' does not exist"
           end
         end
@@ -267,21 +265,23 @@ module Shoryuken
         # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         # when not explicit supplied
         return if Shoryuken::Later.options[:aws].empty?
-  
-        shoryuken_keys = %i(
+
+        shoryuken_keys = %i[
           account_id
           sns_endpoint
           sqs_endpoint
-          receive_message)
-  
-        aws_options = Shoryuken::Later.options[:aws].reject do |k, v|
+          receive_message
+        ]
+
+        aws_options = Shoryuken::Later.options[:aws].reject do |k, _|
           shoryuken_keys.include?(k)
         end
-  
+
         credentials = Aws::Credentials.new(
           aws_options.delete(:access_key_id),
-          aws_options.delete(:secret_access_key))
-  
+          aws_options.delete(:secret_access_key)
+        )
+
         Aws.config = aws_options.merge(credentials: credentials)
       end
 

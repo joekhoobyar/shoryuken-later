@@ -7,7 +7,7 @@ module Shoryuken
   module Later
     MAX_QUEUE_DELAY = 15 * 60
     
-    DEFAULT_POLL_DELAY = 5 * 60
+    DEFAULT_POLL_DELAY = 10
     
     DEFAULTS = {
       aws: {},
@@ -18,12 +18,12 @@ module Shoryuken
       timeout: 8
     }
     
-    @@tables = []
+    @@tables = ['shoryuken_later']
     @@default_table = 'shoryuken_later'
     
     class << self
       def options
-        @options ||= DEFAULTS.dup.tap{|h| h[:later] = h[:later].dup }
+        @options ||= DEFAULTS.dup.tap{ |h| h[:later] = h[:later].dup }
       end
       
       def poll_delay
