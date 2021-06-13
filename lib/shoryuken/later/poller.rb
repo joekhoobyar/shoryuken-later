@@ -21,7 +21,7 @@ module Shoryuken
             items.each do |item|
               id = item['id']
               logger.info "Found message #{id} from '#{table_name}'"
-              if sent_msg = ItemProcessor.call(item)
+              if Shoryuken::Later::ItemProcessor.call(item)
                 logger.debug { "Enqueued message #{id} from '#{table_name}'" }
               else
                 logger.debug { "Skipping already queued message #{id} from '#{table_name}'" }
